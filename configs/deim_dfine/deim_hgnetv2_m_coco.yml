@@ -1,10 +1,10 @@
 __include__: [
   './dfine_hgnetv2_m_coco.yml',
-  '../base/deim.yml',
-   '../../dataset/custom_detection.yml',
-  '../../runtime.yml',
-  '../include/dataloader.yml',
-  '../include/optimizer.yml',
+  '../dataset/custom_detection.yml',
+  '../runtime.yml',
+  '../base/dataloader.yml',
+  '../base/optimizer.yml',
+  '../base/deim.yml'
 ]
 
 output_dir: ./outputs/deim_hgnetv2_m_coco
