@@ -1,9 +1,5 @@
 __include__: [
   './dfine_hgnetv2_m_coco.yml',
-  '../dataset/custom_detection.yml',
-  '../runtime.yml',
-  '../base/dataloader.yml',
-  '../base/optimizer.yml',
   '../base/deim.yml'
 ]
 

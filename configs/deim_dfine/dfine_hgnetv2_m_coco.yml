@@ -1,9 +1,9 @@
 __include__: [
-  '../../../dataset/custom_detection.yml',
-  '../../../runtime.yml',
-  '../../include/dataloader.yml',
-  '../../include/optimizer.yml',
-  '../../include/dfine_hgnetv2.yml',
+  '../dataset/custom_detection.yml',
+  '../runtime.yml',
+  '../base/dataloader.yml',
+  '../base/optimizer.yml',
+  '../base/dfine_hgnetv2.yml',
 ]
 
 output_dir: ./output/dfine_hgnetv2_m_obj2custom
