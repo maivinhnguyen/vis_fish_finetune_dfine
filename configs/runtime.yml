@@ -1,6 +1,6 @@
-print_freq: 200
+print_freq: 4
 output_dir: './logs'
-checkpoint_freq: 5
+checkpoint_freq: 2
 
 sync_bn: True
 find_unused_parameters: False
@@ -18,4 +18,4 @@ ema:
 
 use_wandb: True
 project_name: D-FINE # for wandb
-exp_name: baseline # wandb experiment name
+exp_name: dfine-small # wandb experiment name
