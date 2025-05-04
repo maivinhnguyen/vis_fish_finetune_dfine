@@ -11,7 +11,7 @@ train_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: /kaggle/input/visdrone-dataset/VisDrone2019-DET-train/VisDrone2019-DET-train/images
+    img_folder: /kaggle/input/visdrone-dataset/VisDrone2019-DET-train/VisDrone2019-DET-train
     ann_file: /kaggle/working/visdrone_coco_output/visdrone_train_coco.json
     return_masks: False
     transforms:
@@ -28,7 +28,7 @@ val_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: /kaggle/input/visdrone-dataset/VisDrone2019-DET-val/VisDrone2019-DET-val/images
+    img_folder: /kaggle/input/visdrone-dataset/VisDrone2019-DET-val/VisDrone2019-DET-val
     ann_file: /kaggle/working/visdrone_coco_output/visdrone_val_coco.json
     return_masks: False
     transforms:
