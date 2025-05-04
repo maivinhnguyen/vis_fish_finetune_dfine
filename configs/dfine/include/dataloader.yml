@@ -4,16 +4,18 @@ train_dataloader:
     transforms:
       ops:
         - {type: RandomPhotometricDistort, p: 0.5}
-        - {type: RandomRotation, degrees: 360}
+        - {type: RandomZoomOut, fill: 0}
         - {type: RandomIoUCrop, p: 0.8}
+        - {type: SanitizeBoundingBoxes, min_size: 1}
         - {type: RandomHorizontalFlip}
         - {type: Resize, size: [640, 640], }
+        - {type: SanitizeBoundingBoxes, min_size: 1}
         - {type: ConvertPILImage, dtype: 'float32', scale: True}
         - {type: ConvertBoxes, fmt: 'cxcywh', normalize: True}
       policy:
         name: stop_epoch
         epoch: 72 # epoch in [71, ~) stop `ops`
-        ops: ['RandomPhotometricDistort', 'RandomZoomOut', 'RandomIoUCrop']
+        ops: ['Mosaic', 'RandomPhotometricDistort', 'RandomZoomOut', 'RandomIoUCrop']
 
   collate_fn:
     type: BatchImageCollateFunction
@@ -24,6 +26,7 @@ train_dataloader:
   shuffle: True
   total_batch_size: 16 # total batch size equals to 32 (4 * 8)
   num_workers: 4
+
 
 val_dataloader:
   dataset:
