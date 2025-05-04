@@ -6,7 +6,6 @@ __include__: [
 output_dir: ./outputs/deim_hgnetv2_m_coco
 
 optimizer:
-  type: AdamW
   params: 
     -
       params: '^(?=.*backbone)(?!.*bn).*$'
@@ -21,10 +20,10 @@ optimizer:
 
 
 # Increase to search for the optimal ema
-epoches: 40 # 120 + 4n
+epoches: 50 # 120 + 4n
 
 ## Our LR-Scheduler
-flat_epoch: 22    # 4 + epoch // 2, e.g., 40 = 4 + 72 / 2
+flat_epoch: 29    # 4 + epoch // 2, e.g., 40 = 4 + 72 / 2
 no_aug_epoch: 6
 
 ## Our DataAug
@@ -32,8 +31,8 @@ train_dataloader:
   dataset: 
     transforms:
       policy:
-        epoch: [4, 20, 35]   # list 
+        epoch: [2, 25, 45]   # list 
 
   collate_fn:
-    mixup_epochs: [2, 20]
-    stop_epoch: 35
+    mixup_epochs: [2, 25]
+    stop_epoch: 40

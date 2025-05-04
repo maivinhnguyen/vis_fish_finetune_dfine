@@ -1,5 +1,5 @@
 use_amp: True
-use_ema: True
+use_ema: False
 ema:
   type: ModelEMA
   decay: 0.9999
