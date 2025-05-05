@@ -50,7 +50,7 @@ class Dataset(data.Dataset):
         self.device = device
         self.size = 640
 
-        self.im_path_list = list(glob.glob(os.path.join(img_dir, '*.jpg')))
+        self.im_path_list = list(glob.glob(os.path.join(img_dir, '*.png')))
 
         if preprocess is None:
             self.preprocess = T.Compose([
@@ -66,9 +66,15 @@ class Dataset(data.Dataset):
         return len(self.im_path_list)
 
     def __getitem__(self, index):
-        # im = Image.open(self.img_path_list[index]).convert('RGB')
-        im = torchvision.io.read_file(self.im_path_list[index])
-        im = torchvision.io.decode_jpeg(im, mode=torchvision.io.ImageReadMode.RGB, device=self.device)
+        im_path = self.im_path_list[index]
+        im = torchvision.io.read_file(im_path)
+        if im_path.lower().endswith(('.jpg', '.jpeg')):
+            im = torchvision.io.decode_jpeg(im, mode=torchvision.io.ImageReadMode.RGB, device=self.device)
+        elif im_path.lower().endswith('.png'):
+            im = torchvision.io.decode_png(im, mode=torchvision.io.ImageReadMode.RGB)
+            im = im.to(self.device)
+        else:
+            raise ValueError(f"Unsupported image format: {im_path}")
         _, h, w = im.shape # c,h,w
 
         im = self.preprocess(im)
