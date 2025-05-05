@@ -5,8 +5,8 @@ import os # Import os for file checking
 import numpy as np # Needed for some COCOeval parameters if you customize them
 
 # --- Configuration ---
-gt_file = 'ground_truth.json'
-dt_file = 'detections/detections.json'
+gt_file = '/kaggle/input/fisheye8k/Fisheye8K_all_including_train&test/test/test.json'
+dt_file = 'coco_results.json'
 # Use a more descriptive temporary file name
 temp_dt_file = './temp_filtered_detections.json'
 eval_type = 'bbox' # Type of evaluation ('bbox', 'segm', 'keypoints')
@@ -45,24 +45,113 @@ except Exception as e:
 # --- Extract and Filter Detections ---
 # Check if the loaded data is a dictionary and has the 'annotations' key
 if not isinstance(detection_data_full, dict) or 'annotations' not in detection_data_full:
-    print(f"Error: {dt_file} does not appear to be in the expected COCO format dictionary (missing 'annotations' key).")
+    print(f"Warning: {dt_file} does not appear to be in the expected COCO format dictionary (missing 'annotations' key).")
     # Optional: Check if it's maybe just a list of annotations (older format?)
     if isinstance(detection_data_full, list):
-         print("Warning: Detection file seems to be a list of annotations directly. Using it as is.")
+         print("Detection file seems to be a list of annotations directly. Using it as is.")
          detection_annotations = detection_data_full
     else:
-         exit()
+         # Try to handle as a COCO format with a different structure
+         print("Trying to handle as a differently structured COCO format.")
+         # Default to empty list if annotations not found
+         detection_annotations = detection_data_full.get('annotations', [])
+         if not detection_annotations:
+             print("No annotations found. Checking if the file itself is a list of annotations.")
+             if isinstance(detection_data_full, list):
+                 detection_annotations = detection_data_full
 else:
     # Access the list of annotation dictionaries
     detection_annotations = detection_data_full.get('annotations', []) # Use .get for safety
 
 print(f"Total detections loaded: {len(detection_annotations)}")
 
-# Filter the list of annotations to match ground truth image IDs
-# Add a check for item type just in case
+# --- Create Image ID Mapping ---
+# We'll map between detection image IDs and ground truth image IDs
+# We need to load the image information from both files
+
+# First, load ground truth images
+gt_images = {}
+if 'images' in coco_gt.dataset:
+    for img in coco_gt.dataset['images']:
+        # Store by filename to use as mapping key
+        if 'file_name' in img:
+            gt_images[img['file_name']] = img['id']
+        else:
+            print(f"Warning: Ground truth image missing file_name: {img}")
+
+# Then, load detection images (if available in the detection file)
+dt_images = {}
+dt_image_ids = set()
+if isinstance(detection_data_full, dict) and 'images' in detection_data_full:
+    for img in detection_data_full['images']:
+        if 'file_name' in img:
+            dt_images[img['file_name']] = img['id']
+            dt_image_ids.add(img['id'])
+        else:
+            print(f"Warning: Detection image missing file_name: {img}")
+
+# If we don't have images in detection file, collect unique image IDs from annotations
+elif detection_annotations:
+    for anno in detection_annotations:
+        if 'image_id' in anno:
+            dt_image_ids.add(anno['image_id'])
+
+print(f"Found {len(dt_image_ids)} unique image IDs in detections.")
+
+# Create mapping between detection and ground truth image IDs
+id_mapping = {}
+
+# Case 1: If we have filenames in both files, map by filename
+if gt_images and dt_images:
+    print("Creating image ID mapping based on file names...")
+    for filename, dt_id in dt_images.items():
+        if filename in gt_images:
+            id_mapping[dt_id] = gt_images[filename]
+
+# Case 2: If we can't map by filename but have the same number of images, try sequential mapping
+# This is a fallback and assumes the images are in the same order
+elif len(dt_image_ids) > 0 and len(dt_image_ids) == len(gt_image_ids):
+    print("Warning: Can't map by filename. Trying sequential mapping (assumes same order)...")
+    sorted_dt_ids = sorted(list(dt_image_ids))
+    sorted_gt_ids = sorted(list(gt_image_ids))
+    
+    for dt_id, gt_id in zip(sorted_dt_ids, sorted_gt_ids):
+        id_mapping[dt_id] = gt_id
+
+# Case 3: If we can't reliably map, use identity mapping where IDs match
+else:
+    print("Warning: Can't create reliable mapping. Using identity mapping where IDs match...")
+    for dt_id in dt_image_ids:
+        if dt_id in gt_image_ids:
+            id_mapping[dt_id] = dt_id
+
+print(f"Created mapping for {len(id_mapping)} image IDs between detections and ground truth.")
+
+# If no mapping was created, print warning
+if not id_mapping:
+    print("ERROR: Could not create any mapping between detection and ground truth image IDs.")
+    print("Please check that your detection and ground truth files reference the same images.")
+    print("Consider manually specifying a mapping or ensuring both files use the same image IDs.")
+    exit()
+
+# --- Map and Filter Detections ---
+mapped_detection_annotations = []
+for item in detection_annotations:
+    if isinstance(item, dict) and 'image_id' in item:
+        orig_image_id = item['image_id']
+        # If we have a mapping for this image ID, use it
+        if orig_image_id in id_mapping:
+            # Create a copy to avoid modifying the original
+            mapped_item = item.copy()
+            mapped_item['image_id'] = id_mapping[orig_image_id]
+            mapped_detection_annotations.append(mapped_item)
+
+print(f"Detections after ID mapping: {len(mapped_detection_annotations)}")
+
+# Filter the mapped annotations to match ground truth image IDs
 filtered_detection_annotations = [
-    item for item in detection_annotations
-    if isinstance(item, dict) and item.get('image_id') in gt_image_ids
+    item for item in mapped_detection_annotations
+    if item.get('image_id') in gt_image_ids
 ]
 print(f"Detections after filtering for GT image IDs: {len(filtered_detection_annotations)}")
 
@@ -76,7 +165,7 @@ if not filtered_detection_annotations:
 try:
     with open(temp_dt_file, 'w') as f:
         json.dump(filtered_detection_annotations, f)
-    print(f"Saved filtered detections to temporary file: {temp_dt_file}")
+    print(f"Saved filtered and mapped detections to temporary file: {temp_dt_file}")
 except Exception as e:
     print(f"Error writing temporary filtered detections file {temp_dt_file}: {e}")
     exit()

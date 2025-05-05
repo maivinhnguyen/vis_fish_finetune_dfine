@@ -73,10 +73,6 @@ def process_directory_to_coco(model, device, input_dir, output_json, conf_thresh
             "width": original_width,
             "height": original_height,
             "file_name": img_filename,
-            "license": 0,
-            "flickr_url": "",
-            "coco_url": "",
-            "date_captured": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
         
         # Prepare image for model
@@ -117,7 +113,6 @@ def process_directory_to_coco(model, device, input_dir, output_json, conf_thresh
                 "category_id": label_id,
                 "bbox": [float(x1), float(y1), float(width), float(height)],
                 "area": float(width * height),
-                "segmentation": [],
                 "iscrowd": 0,
                 "score": float(filtered_scores[i])
             })
