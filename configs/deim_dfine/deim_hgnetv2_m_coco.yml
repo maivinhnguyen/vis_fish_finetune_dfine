@@ -35,4 +35,4 @@ train_dataloader:
 
   collate_fn:
     mixup_epochs: [2, 25]
-    stop_epoch: 40
+    stop_epoch: 0 ## DISABLED - PROBLEMATIC AF
