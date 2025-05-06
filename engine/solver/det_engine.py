@@ -123,55 +123,27 @@ def train_one_epoch(self_lr_scheduler, lr_scheduler, model: torch.nn.Module, cri
 
 
 @torch.no_grad()
-def evaluate(
-    model: torch.nn.Module,
-    criterion: torch.nn.Module,
-    postprocessor,
-    data_loader,
-    coco_evaluator: CocoEvaluator,
-    device,
-    epoch: int,
-    use_wandb: bool,
-    **kwargs,
-):
-    if use_wandb:
-        import wandb
-
+def evaluate(model: torch.nn.Module, criterion: torch.nn.Module, postprocessor, data_loader, coco_evaluator: CocoEvaluator, device):
     model.eval()
     criterion.eval()
     coco_evaluator.cleanup()
 
     metric_logger = MetricLogger(delimiter="  ")
     # metric_logger.add_meter('class_error', SmoothedValue(window_size=1, fmt='{value:.2f}'))
-    header = "Test:"
+    header = 'Test:'
 
     # iou_types = tuple(k for k in ('segm', 'bbox') if k in postprocessor.keys())
     iou_types = coco_evaluator.iou_types
     # coco_evaluator = CocoEvaluator(base_ds, iou_types)
     # coco_evaluator.coco_eval[iou_types[0]].params.iouThrs = [0, 0.1, 0.5, 0.75]
 
-    gt: List[Dict[str, torch.Tensor]] = []
-    preds: List[Dict[str, torch.Tensor]] = []
-
-    output_dir = kwargs.get("output_dir", None)
-    num_visualization_sample_batch = kwargs.get("num_visualization_sample_batch", 1)
-
-    for i, (samples, targets) in enumerate(metric_logger.log_every(data_loader, 10, header)):
-        global_step = epoch * len(data_loader) + i
-
-        if global_step < num_visualization_sample_batch and output_dir is not None and dist_utils.is_main_process():
-            save_samples(samples, targets, output_dir, "val", normalized=False, box_fmt="xyxy")
-
+    for samples, targets in metric_logger.log_every(data_loader, 10, header):
         samples = samples.to(device)
-        targets = [{k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in targets]
+        targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
         outputs = model(samples)
-        # with torch.autocast(device_type=str(device)):
-        #     outputs = model(samples)
 
-        # TODO (lyuwenyu), fix dataset converted using `convert_to_coco_api`?
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
-        # orig_target_sizes = torch.tensor([[samples.shape[-1], samples.shape[-2]]], device=samples.device)
 
         results = postprocessor(outputs, orig_target_sizes)
 
@@ -179,38 +151,9 @@ def evaluate(
         #     target_sizes = torch.stack([t["size"] for t in targets], dim=0)
         #     results = postprocessor['segm'](results, outputs, orig_target_sizes, target_sizes)
 
-        res = {target["image_id"].item(): output for target, output in zip(targets, results)}
+        res = {target['image_id'].item(): output for target, output in zip(targets, results)}
         if coco_evaluator is not None:
             coco_evaluator.update(res)
-
-        # validator format for metrics
-        for idx, (target, result) in enumerate(zip(targets, results)):
-            gt.append(
-                {
-                    "boxes": scale_boxes(  # from model input size to original img size
-                        target["boxes"],
-                        (target["orig_size"][1], target["orig_size"][0]),
-                        (samples[idx].shape[-1], samples[idx].shape[-2]),
-                    ),
-                    "labels": target["labels"],
-                }
-            )
-            labels = (
-                torch.tensor([mscoco_category2label[int(x.item())] for x in result["labels"].flatten()])
-                .to(result["labels"].device)
-                .reshape(result["labels"].shape)
-            ) if postprocessor.remap_mscoco_category else result["labels"]
-            preds.append(
-                {"boxes": result["boxes"], "labels": labels, "scores": result["scores"]}
-            )
-
-    # Conf matrix, F1, Precision, Recall, box IoU
-    metrics = Validator(gt, preds).compute_metrics()
-    print("Metrics:", metrics)
-    if use_wandb:
-        metrics = {f"metrics/{k}": v for k, v in metrics.items()}
-        metrics["epoch"] = epoch
-        wandb.log(metrics)
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
@@ -226,9 +169,9 @@ def evaluate(
     stats = {}
     # stats = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
     if coco_evaluator is not None:
-        if "bbox" in iou_types:
-            stats["coco_eval_bbox"] = coco_evaluator.coco_eval["bbox"].stats.tolist()
-        if "segm" in iou_types:
-            stats["coco_eval_masks"] = coco_evaluator.coco_eval["segm"].stats.tolist()
+        if 'bbox' in iou_types:
+            stats['coco_eval_bbox'] = coco_evaluator.coco_eval['bbox'].stats.tolist()
+        if 'segm' in iou_types:
+            stats['coco_eval_masks'] = coco_evaluator.coco_eval['segm'].stats.tolist()
 
     return stats, coco_evaluator
