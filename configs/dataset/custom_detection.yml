@@ -11,8 +11,8 @@ train_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: /kaggle/input/MergedVisDrone/train/images
-    ann_file: /kaggle/working/MergedVisDrone/train/train.json
+    img_folder: /kaggle/input/mergedvisdrone/train/images
+    ann_file: /kaggle/input/mergedvisdrone/train/train.json
     return_masks: False
     transforms:
       type: Compose
@@ -28,8 +28,8 @@ val_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: /kaggle/input/MergedVisDrone/val/images
-    ann_file: /kaggle/working/MergedVisDrone/val/val.json
+    img_folder: /kaggle/input/mergedvisdrone/val/images
+    ann_file: /kaggle/input/mergedvisdrone/val/val.json
     return_masks: False
     transforms:
       type: Compose
