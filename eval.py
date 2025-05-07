@@ -6,7 +6,7 @@ import numpy as np # Needed for some COCOeval parameters if you customize them
 
 # --- Configuration ---
 gt_file = '/kaggle/input/fisheye8k/Fisheye8K_all_including_train&test/test/test.json'
-dt_file = 'detections/test_pred.json'
+dt_file = 'detections/test_pred_epoch35.json'
 # Use a more descriptive temporary file name
 temp_dt_file = './temp_filtered_detections.json'
 eval_type = 'bbox' # Type of evaluation ('bbox', 'segm', 'keypoints')
