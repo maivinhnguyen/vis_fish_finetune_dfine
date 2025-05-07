@@ -11,7 +11,7 @@ train_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: /kaggle/input/fisheye8k-visdrone-vipcupnight2k/fisheye8K_visdrone_vipcupnight2k/train/
+    img_folder: /kaggle/input/fisheye8k-visdrone-vipcupnight2k/fisheye8K_visdrone_vipcupnight2k/train/images/
     ann_file: /kaggle/input/fisheye8k-visdrone-vipcupnight2k/fisheye8K_visdrone_vipcupnight2k/train/train.json
     return_masks: False
     transforms:
@@ -28,7 +28,7 @@ val_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: /kaggle/input/fisheye8k-visdrone-vipcupnight2k/fisheye8K_visdrone_vipcupnight2k/val
+    img_folder: /kaggle/input/fisheye8k-visdrone-vipcupnight2k/fisheye8K_visdrone_vipcupnight2k/val/images
     ann_file: /kaggle/input/fisheye8k-visdrone-vipcupnight2k/fisheye8K_visdrone_vipcupnight2k/val/val.json
     return_masks: False
     transforms:
