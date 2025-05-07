@@ -5,7 +5,7 @@ import os # Import os for file checking
 import numpy as np # Needed for some COCOeval parameters if you customize them
 
 # --- Configuration ---
-gt_file = '/kaggle/input/fisheye8k/Fisheye8K_all_including_train&test/test/test.json'
+gt_file = '/kaggle/input/fisheye8k-visdrone-vipcupnight2k/fisheye8K_visdrone_vipcupnight2k/val/val.json'
 dt_file = 'detections/test_pred.json'
 # Use a more descriptive temporary file name
 temp_dt_file = './temp_filtered_detections.json'
