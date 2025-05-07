@@ -42,16 +42,6 @@ def process_directory_to_coco(model, device, input_dir, output_json, conf_thresh
     # You can customize category definitions based on your model's classes
     # For now using placeholder indices
     category_mapping = {
-        0: "pedestrian",
-        1: "people",
-        2: 'bicycle',
-        3: "car",
-        4: "van",
-        5: "truck",
-        6: "tricycle",
-        7: "awning-tricycle",
-        8:  "bus",
-        9: "motor"
     }  # Will be populated from detection results
     annotation_id = 1
     
