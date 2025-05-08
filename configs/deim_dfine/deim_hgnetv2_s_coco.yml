@@ -10,29 +10,29 @@ optimizer:
   params: 
     - 
       params: '^(?=.*backbone)(?!.*bn).*$'
-      lr: 0.0001
+      lr: 0.00005
     - 
       params: '^(?=.*(?:norm|bn)).*$'     # except bias
       weight_decay: 0.
 
-  lr: 0.0002
+  lr: 0.0001
   betas: [0.9, 0.999]
   weight_decay: 0.0001
 
 
 # Increase to search for the optimal ema
-epoches: 50 # 120 + 4n
+epoches: 26 # 120 + 4n
 
 ## Our LR-Scheduler
-flat_epoch: 30    # 4 + epoch // 2, e.g., 40 = 4 + 72 / 2
-no_aug_epoch: 4
+flat_epoch: 4    # 4 + epoch // 2, e.g., 40 = 4 + 72 / 2
+no_aug_epoch: 0
 
 ## Our DataAug
 train_dataloader: 
   dataset: 
     transforms:
       policy:
-        epoch: [1, 25, 47]   # list 
+        epoch: [1, 1, 23]   # list 
 
   collate_fn:
     mixup_epochs: [1, 47]
