@@ -4,6 +4,7 @@ import json
 import os # os.path.basename will be used
 import numpy as np
 import argparse
+import datetime # Added for COCOeval eval['date'] if needed, though not directly used by F1
 
 def main(gt_file_path, dt_file_path, eval_type_str):
     """
@@ -70,12 +71,10 @@ def main(gt_file_path, dt_file_path, eval_type_str):
         print("Warning: No detection annotations loaded. Evaluation will likely be empty.")
 
     # --- Create Image ID Mapping ---
-    # MODIFICATION START: Use os.path.basename for robust filename matching
-    gt_images_by_basename = {} # Maps basename(gt_filename) -> gt_image_id
+    gt_images_by_basename = {} 
     if 'images' in coco_gt.dataset:
         for img in coco_gt.dataset['images']:
             if 'file_name' in img:
-                # Use basename to handle potential directory prefixes in GT
                 base_name = os.path.basename(img['file_name'])
                 if base_name in gt_images_by_basename:
                     print(f"Warning: Duplicate basename '{base_name}' in ground truth images. Mapping might be ambiguous. Keeping id: {gt_images_by_basename[base_name]}")
@@ -84,21 +83,19 @@ def main(gt_file_path, dt_file_path, eval_type_str):
             else:
                 print(f"Warning: Ground truth image missing file_name: {img}")
 
-    dt_images_by_basename = {} # Maps basename(dt_filename) -> dt_image_id
+    dt_images_by_basename = {} 
     dt_image_ids_from_file_images_section = set()
     if isinstance(detection_data_full, dict) and 'images' in detection_data_full:
         for img in detection_data_full['images']:
             if 'file_name' in img:
-                # Use basename to handle potential directory prefixes (though less common in DT)
                 base_name = os.path.basename(img['file_name'])
                 if base_name in dt_images_by_basename:
                      print(f"Warning: Duplicate basename '{base_name}' in detection images. Mapping might be ambiguous. Keeping id: {dt_images_by_basename[base_name]}")
                 else:
-                    dt_images_by_basename[base_name] = img['id'] # Map basename to its original dt_id
-                dt_image_ids_from_file_images_section.add(img['id']) # Collect the actual dt_id
+                    dt_images_by_basename[base_name] = img['id'] 
+                dt_image_ids_from_file_images_section.add(img['id']) 
             else:
                 print(f"Warning: Detection image missing file_name: {img}")
-    # MODIFICATION END
 
     dt_image_ids_from_annotations = set()
     if detection_annotations:
@@ -110,7 +107,6 @@ def main(gt_file_path, dt_file_path, eval_type_str):
     print(f"Found {len(final_dt_image_ids)} unique image IDs in detections.")
 
     id_mapping = {}
-    # MODIFICATION START: Use the new _by_basename dictionaries for mapping
     if gt_images_by_basename and dt_images_by_basename:
         print("Creating image ID mapping based on base file names...")
         mapped_count = 0
@@ -120,34 +116,28 @@ def main(gt_file_path, dt_file_path, eval_type_str):
                 id_mapping[dt_id] = gt_images_by_basename[dt_basename]
                 mapped_count +=1
             else:
-                # print(f"Debug: Detection basename '{dt_basename}' (dt_id: {dt_id}) not found in ground truth basenames.")
                 unmapped_dt_basenames += 1
         if unmapped_dt_basenames > 0:
             print(f"Warning: {unmapped_dt_basenames} basenames from detection 'images' section not found in ground truth 'images' section basenames.")
         print(f"Mapped {mapped_count} image IDs using basenames.")
-    # MODIFICATION END
     elif len(final_dt_image_ids) > 0 and len(final_dt_image_ids) == len(gt_image_ids) and not (gt_images_by_basename or dt_images_by_basename):
-        # Only try sequential if filename mapping was not possible (e.g., no 'images' section in one or both)
-        print("Warning: Cannot map by filename (no 'images' section in GT or DT, or they were empty). Trying sequential mapping (assumes same order and count of image IDs)...")
+        print("Warning: Cannot map by filename. Trying sequential mapping (assumes same order and count of image IDs)...")
         sorted_dt_ids = sorted(list(final_dt_image_ids))
         sorted_gt_ids = sorted(list(gt_image_ids))
         for dt_id, gt_id in zip(sorted_dt_ids, sorted_gt_ids):
             id_mapping[dt_id] = gt_id
-    else: # Fallback to identity mapping if other methods fail or are not applicable
+    else: 
         print("Warning: Filename or sequential mapping not fully applicable. Using identity mapping for matching IDs as a fallback...")
-        # This will augment any existing id_mapping or create new ones if IDs match
         for dt_id in final_dt_image_ids:
-            if dt_id in gt_image_ids and dt_id not in id_mapping: # Add if ID matches and not already mapped
+            if dt_id in gt_image_ids and dt_id not in id_mapping: 
                 id_mapping[dt_id] = dt_id
 
     print(f"Created mapping for {len(id_mapping)} image IDs between detections and ground truth.")
     if not id_mapping and final_dt_image_ids and gt_image_ids:
         print("ERROR: Could not create any mapping between detection and ground truth image IDs.")
-        print("Please check that your detection and ground truth files reference the same images,")
-        print("either by file_name (if 'images' section exists in both) or by having identical 'image_id' sets if filenames cannot be matched.")
+        # ... (error message)
         return
 
-    # --- Map and Filter Detections ---
     mapped_detection_annotations = []
     unmapped_detection_ids_count = 0
     successfully_mapped_ids_in_annotations = set()
@@ -160,9 +150,9 @@ def main(gt_file_path, dt_file_path, eval_type_str):
                 mapped_item['image_id'] = id_mapping[orig_image_id]
                 mapped_detection_annotations.append(mapped_item)
                 successfully_mapped_ids_in_annotations.add(orig_image_id)
-            elif orig_image_id in gt_image_ids: # Fallback: if ID exists in GT & no mapping was found for it
+            elif orig_image_id in gt_image_ids: 
                 print(f"Info: Detection with image_id {orig_image_id} not in id_mapping but exists in gt_image_ids. Assuming it's already aligned.")
-                mapped_detection_annotations.append(item) # Add as is
+                mapped_detection_annotations.append(item) 
                 successfully_mapped_ids_in_annotations.add(orig_image_id)
             else:
                 unmapped_detection_ids_count += 1
@@ -174,14 +164,13 @@ def main(gt_file_path, dt_file_path, eval_type_str):
 
     filtered_detection_annotations = [
         item for item in mapped_detection_annotations
-        if item.get('image_id') in gt_image_ids # item['image_id'] should now be a GT ID
+        if item.get('image_id') in gt_image_ids 
     ]
     print(f"Detections after filtering for GT image IDs: {len(filtered_detection_annotations)}")
 
-    if not filtered_detection_annotations and detection_annotations : # only warn if there were detections to begin with
+    if not filtered_detection_annotations and detection_annotations : 
         print("Warning: No detections remaining after filtering by ground truth image IDs. Evaluation might yield zero results.")
 
-    # --- Save Filtered Detections to a Temporary File ---
     try:
         with open(temp_dt_file, 'w') as f:
             json.dump(filtered_detection_annotations, f)
@@ -190,20 +179,25 @@ def main(gt_file_path, dt_file_path, eval_type_str):
         print(f"Error writing temporary filtered detections file {temp_dt_file}: {e}")
         return
 
-    # --- Load Filtered Detections into COCO API ---
-    if not filtered_detection_annotations and not gt_image_ids:
-         print("No ground truth images or filtered detections. Skipping COCO API loading and evaluation.")
-    elif not filtered_detection_annotations and gt_image_ids:
-        print("No filtered detections to load. Evaluation will likely show 0 for all metrics.")
-        # Create an empty coco_dt object if pycocotools handles it gracefully
-        # or simply skip evaluation if that's preferred.
-        # For now, let's try to proceed; COCOeval should handle empty detections.
+    if not gt_image_ids: # Moved this check up
+         print("No ground truth images. Skipping COCO API loading and evaluation.")
+         # Clean up temp file if it was created
+         if os.path.exists(temp_dt_file):
+            try:
+                os.remove(temp_dt_file)
+            except OSError:
+                pass # Ignore error if removal fails
+         return
+
+
+    if not filtered_detection_annotations: # Check if filtered list is empty
+        print("No filtered detections to load. Evaluation will proceed with empty detections.")
         try:
-            coco_dt = coco_gt.loadRes([]) # Pass an empty list
+            coco_dt = coco_gt.loadRes([]) 
             print("Loaded empty detections into COCO API.")
         except Exception as e:
             print(f"Error loading empty results: {e}")
-            return # Cannot proceed if even empty load fails
+            return 
     else:
         try:
             coco_dt = coco_gt.loadRes(temp_dt_file)
@@ -217,43 +211,37 @@ def main(gt_file_path, dt_file_path, eval_type_str):
                 print(f"Direct list loading also failed: {e2}")
                 return
 
-    # --- Initialize and Run Evaluation ---
     print(f"\nRunning COCO Evaluation (type: '{eval_type}')...")
-    if not gt_image_ids:
-        print("Skipping evaluation as no ground truth image IDs were found.")
-        return
-
+    
     try:
-        coco_eval = COCOeval(coco_gt, coco_dt, eval_type) # coco_dt might be empty here
+        coco_eval = COCOeval(coco_gt, coco_dt, eval_type) 
         coco_eval.evaluate()
         coco_eval.accumulate()
         coco_eval.summarize()
     except Exception as e:
         print(f"Error during COCO evaluation steps: {e}")
-        # If coco_dt was empty, this might be where an error occurs if not handled by COCOeval
         if not filtered_detection_annotations:
             print("This error might be due to evaluating with no detections.")
         return
 
-    # --- Compute F1 Score ---
-    def compute_f1_scores(coco_eval_obj, current_coco_gt, iou_threshold_idx=0): # Renamed coco_eval to coco_eval_obj
+    def compute_f1_scores(coco_eval_obj, current_coco_gt, iou_threshold_idx=0):
         if not hasattr(coco_eval_obj, 'eval') or 'precision' not in coco_eval_obj.eval:
             print("Warning: Precision data not found in coco_eval.eval. Cannot compute F1 scores.")
             return {}
             
         precision = coco_eval_obj.eval['precision']
-        s = coco_eval_obj.eval['scores'] 
+        # s = coco_eval_obj.eval['scores'] # This variable was unused
 
         f1_scores_dict = {}
         
         category_names = {}
-        if current_coco_gt.cats: # Use the passed coco_gt object
+        if current_coco_gt.cats:
             category_names = {cat_id: current_coco_gt.cats[cat_id]['name'] 
                               for cat_id in coco_eval_obj.params.catIds 
                               if cat_id in current_coco_gt.cats}
             for cat_id in coco_eval_obj.params.catIds:
-                if cat_id not in category_names:
-                    category_names[cat_id] = f"cat_{cat_id}_missing_name"
+                if cat_id not in category_names: # Handle categories present in eval but not in GT's cat list (e.g. if GT has no annotations for it)
+                    category_names[cat_id] = f"cat_{cat_id}_name_missing_in_gt"
         else:
             print("Warning: coco_gt.cats is empty. Using generic category names for F1 scores.")
             category_names = {cat_id: f"cat_{cat_id}" for cat_id in coco_eval_obj.params.catIds}
@@ -262,71 +250,98 @@ def main(gt_file_path, dt_file_path, eval_type_str):
             print("Warning: No category IDs found in coco_eval.params. F1 scores will be empty.")
             return {'mean_f1': 0.0}
 
-
-        p = precision[iou_threshold_idx, :, :, 0, coco_eval_obj.params.maxDets.index(100) if 100 in coco_eval_obj.params.maxDets else -1] # MaxDets=100 index
         recall_thresholds = coco_eval_obj.params.recThrs 
+        max_dets_idx = coco_eval_obj.params.maxDets.index(100) if 100 in coco_eval_obj.params.maxDets else -1
 
-        max_f1_per_category = []
+        # --- Calculate F1 for the specific iou_threshold_idx (e.g., IoU=0.50) ---
+        # p_at_specific_iou shape: (num_recall_thresholds, num_categories)
+        p_at_specific_iou = precision[iou_threshold_idx, :, :, 0, max_dets_idx]
         
+        max_f1_per_category_at_specific_iou = []
         for k_idx, cat_id in enumerate(coco_eval_obj.params.catIds):
-            if k_idx >= p.shape[1]: # Safety check if p doesn't have enough columns for categories
-                print(f"Warning: Category index {k_idx} (ID: {cat_id}) out of bounds for precision array. Skipping F1 for this cat.")
+            if k_idx >= p_at_specific_iou.shape[1]: 
+                print(f"Warning: Category index {k_idx} (ID: {cat_id}) out of bounds for precision array (IoU idx {iou_threshold_idx}). Skipping F1 for this cat.")
                 continue
-            prec_at_recalls = p[:, k_idx] 
             
-            current_max_f1 = 0
+            prec_at_recalls = p_at_specific_iou[:, k_idx] # PR curve for this category
+            
+            current_max_f1 = 0.0
             for r_idx, rec_val in enumerate(recall_thresholds):
-                if r_idx >= prec_at_recalls.shape[0]: # Safety check
+                if r_idx >= prec_at_recalls.shape[0]: 
                     continue
                 prec_val = prec_at_recalls[r_idx]
-                if prec_val + rec_val > 0:
-                    f1 = 2 * prec_val * rec_val / (prec_val + rec_val)
-                    if f1 > current_max_f1:
-                        current_max_f1 = f1
-            max_f1_per_category.append(current_max_f1)
-            f1_scores_dict[f'f1_{category_names.get(cat_id, f"cat_{cat_id}")}'] = float(current_max_f1)
+                
+                # MODIFICATION START: Handle prec_val = -1
+                current_prec_for_f1 = 0.0
+                if prec_val > -1: # Valid precision value (can be 0 or positive)
+                    current_prec_for_f1 = prec_val
+                # If prec_val is -1, current_prec_for_f1 remains 0.0
+                
+                if current_prec_for_f1 + rec_val > 0: # If either P or R (or both) are > 0
+                    f1 = 2 * current_prec_for_f1 * rec_val / (current_prec_for_f1 + rec_val)
+                else: # Both P_for_f1 and R are 0. F1 is 0.
+                    f1 = 0.0
+                # MODIFICATION END
+                
+                if f1 > current_max_f1:
+                    current_max_f1 = f1
+            max_f1_per_category_at_specific_iou.append(current_max_f1)
+            cat_name_key = category_names.get(cat_id, f"cat_{cat_id}")
+            f1_scores_dict[f'f1_{cat_name_key}'] = float(current_max_f1)
 
-        mean_f1 = np.mean(max_f1_per_category) if max_f1_per_category else 0.0
-        f1_scores_dict['mean_f1'] = float(mean_f1)
+        mean_f1_at_specific_iou = np.mean(max_f1_per_category_at_specific_iou) if max_f1_per_category_at_specific_iou else 0.0
+        f1_scores_dict['mean_f1'] = float(mean_f1_at_specific_iou) # This is mean F1 @ IoU specified by iou_threshold_idx
         
-        if iou_threshold_idx == 0:
+        # --- Calculate F1 scores for all IoU thresholds specified in coco_eval_obj.params.iouThrs ---
+        # This block runs if the initial call to compute_f1_scores was for iou_threshold_idx=0 (typically IoU=0.5)
+        # to avoid redundant calculations if this function were called multiple times with different iou_threshold_idx.
+        if iou_threshold_idx == 0: # Standard call is with iou_threshold_idx=0
             iou_thrs_values = coco_eval_obj.params.iouThrs
-            max_dets_100_idx = coco_eval_obj.params.maxDets.index(100) if 100 in coco_eval_obj.params.maxDets else -1
 
             for t_idx, iou_val in enumerate(iou_thrs_values):
-                if t_idx >= precision.shape[0]: continue # Safety
-                p_at_iou = precision[t_idx, :, :, 0, max_dets_100_idx] 
+                if t_idx >= precision.shape[0]: continue 
                 
-                current_max_f1_at_iou_per_category = []
+                # p_at_current_iter_iou shape: (num_recall_thresholds, num_categories)
+                p_at_current_iter_iou = precision[t_idx, :, :, 0, max_dets_idx] 
+                
+                current_max_f1_at_iter_iou_per_category = []
                 for k_idx, cat_id in enumerate(coco_eval_obj.params.catIds):
-                    if k_idx >= p_at_iou.shape[1]: continue # Safety
-                    prec_at_recalls_for_iou = p_at_iou[:, k_idx]
+                    if k_idx >= p_at_current_iter_iou.shape[1]: continue 
                     
-                    cat_max_f1 = 0
+                    prec_at_recalls_for_iter_iou = p_at_current_iter_iou[:, k_idx]
+                    
+                    cat_max_f1_at_iter_iou = 0.0
                     for r_idx, rec_val in enumerate(recall_thresholds):
-                        if r_idx >= prec_at_recalls_for_iou.shape[0]: continue # Safety
-                        prec_val = prec_at_recalls_for_iou[r_idx]
-                        if prec_val + rec_val > 0:
-                            f1 = 2 * prec_val * rec_val / (prec_val + rec_val)
-                            if f1 > cat_max_f1:
-                                cat_max_f1 = f1
-                    current_max_f1_at_iou_per_category.append(cat_max_f1)
+                        if r_idx >= prec_at_recalls_for_iter_iou.shape[0]: continue 
+                        prec_val = prec_at_recalls_for_iter_iou[r_idx]
+                        
+                        # MODIFICATION START: Handle prec_val = -1
+                        current_prec_for_f1 = 0.0
+                        if prec_val > -1:
+                            current_prec_for_f1 = prec_val
+                        
+                        if current_prec_for_f1 + rec_val > 0:
+                            f1 = 2 * current_prec_for_f1 * rec_val / (current_prec_for_f1 + rec_val)
+                        else:
+                            f1 = 0.0
+                        # MODIFICATION END
+                        
+                        if f1 > cat_max_f1_at_iter_iou:
+                            cat_max_f1_at_iter_iou = f1
+                    current_max_f1_at_iter_iou_per_category.append(cat_max_f1_at_iter_iou)
                 
-                mean_f1_at_iou = np.mean(current_max_f1_at_iou_per_category) if current_max_f1_at_iou_per_category else 0.0
-                f1_scores_dict[f'f1_iou_{iou_val:.2f}'] = float(mean_f1_at_iou)
+                mean_f1_at_iter_iou = np.mean(current_max_f1_at_iter_iou_per_category) if current_max_f1_at_iter_iou_per_category else 0.0
+                f1_scores_dict[f'f1_iou_{iou_val:.2f}'] = float(mean_f1_at_iter_iou)
                 
         return f1_scores_dict
 
-    # Pass coco_gt to the F1 function
-    f1_scores = compute_f1_scores(coco_eval, coco_gt, iou_threshold_idx=0)
+    f1_scores = compute_f1_scores(coco_eval, coco_gt, iou_threshold_idx=0) # iou_threshold_idx=0 corresponds to IoU=0.5 typically
 
-    # --- Print Specific Evaluation Metrics ---
     print('\n--- Specific Evaluation Metrics ---')
     if hasattr(coco_eval, 'stats') and len(coco_eval.stats) >= 12:
         stats = coco_eval.stats
         print(f"AP_0.50:0.95 (Primary Challenge Metric): {stats[0]:.4f}")
         print(f"AP_0.50: {stats[1]:.4f}")
-        # ... (rest of the stats printing) ...
         print(f"AP_0.75: {stats[2]:.4f}")
         print(f"AP_Small: {stats[3]:.4f}")
         print(f"AP_Medium: {stats[4]:.4f}")
@@ -339,23 +354,23 @@ def main(gt_file_path, dt_file_path, eval_type_str):
         print(f"AR_Large: {stats[11]:.4f}")
 
         print("\n--- F1 Scores ---")
-        print(f"F1_Score (mean over categories @ IoU=0.50): {f1_scores.get('mean_f1', 0.0):.4f}")
+        # This 'mean_f1' is the mean F1 over categories at the specific IoU passed to compute_f1_scores (default 0.50)
+        print(f"F1_Score (mean over categories @ IoU={coco_eval.params.iouThrs[0]:.2f}): {f1_scores.get('mean_f1', 0.0):.4f}")
 
-        print("\n--- F1 Scores at different IoUs (mean over categories) ---")
-        for key, value in f1_scores.items():
+        print("\n--- Mean F1 Scores at different IoUs (mean over categories) ---")
+        for key, value in sorted(f1_scores.items()): # Sort for consistent output
             if key.startswith('f1_iou_'):
-                print(f"{key.replace('f1_iou_', 'F1@IoU='):}: {value:.4f}")
+                print(f"{key.replace('f1_iou_', 'F1@IoU='):<12}: {value:.4f}")
         
-        print("\n--- Per-Category F1 Scores (@ IoU=0.50) ---")
-        for key, value in f1_scores.items():
+        print(f"\n--- Per-Category F1 Scores (@ IoU={coco_eval.params.iouThrs[0]:.2f}) ---")
+        for key, value in sorted(f1_scores.items()): # Sort for consistent output
             if key.startswith('f1_') and not key.startswith('f1_iou_') and key != 'mean_f1':
-                print(f"{key}: {value:.4f}")
+                print(f"{key:<25}: {value:.4f}") # Adjusted spacing for category names
     else:
         print("Evaluation stats are not available or incomplete. This can happen if there are no GT annotations or no detections.")
 
     print('---------------------------------')
 
-    # --- Clean up ---
     try:
         if os.path.exists(temp_dt_file):
             os.remove(temp_dt_file)
