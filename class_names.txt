@@ -1,0 +1,5 @@
+Bus
+Bike
+Car
+Pedestrian
+Truck
