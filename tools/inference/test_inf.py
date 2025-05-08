@@ -1,4 +1,3 @@
---- START OF FILE optimized_torch_inf.py ---
 
 """
 Copyright (c) 2024 The D-FINE Authors. All Rights Reserved.
