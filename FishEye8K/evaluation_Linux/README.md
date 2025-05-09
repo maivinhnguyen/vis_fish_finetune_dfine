@@ -1,7 +1,7 @@
-# Evaluation Metric for FishEye8k dataset
-
-Update:
-
-`2024/03/18`: Change the bug in calculating f1 score.
-
-
+# Usage
+---
+```python
+conda create -n python3_8 python=3.8
+conda activate python3_8
+pip install numpy 
+```
