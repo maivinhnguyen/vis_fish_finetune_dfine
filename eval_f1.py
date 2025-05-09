@@ -8,7 +8,7 @@ gt_image_ids = coco_gt.getImgIds()
 
 print("Total images ", len(gt_image_ids))
 
-with open('d/kaggle/working/vis_fish_finetune_dfine/detection.json', 'r') as f:
+with open('/kaggle/working/vis_fish_finetune_dfine/detection.json', 'r') as f:
     detection_data = json.load(f)
 
 filtered_detection_data = [
