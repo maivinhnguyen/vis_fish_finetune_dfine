@@ -1,5 +1,5 @@
-from coco import COCO
-from cocoeval_modified import COCOeval
+from pycocotools.coco import COCO
+from pycocotools.cocoeval_modified import COCOeval
 import json
 
 coco_gt = COCO('test.json')
