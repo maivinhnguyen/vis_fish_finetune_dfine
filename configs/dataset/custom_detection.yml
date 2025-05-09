@@ -11,8 +11,8 @@ train_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: /kaggle/input/fisheye8k-vipcupnight2k/fisheye8k_and_vip_cup_night_2k/train/images
-    ann_file: /kaggle/input/fisheye8k-vipcupnight2k/fisheye8k_and_vip_cup_night_2k/train/train.json
+    img_folder: /kaggle/input/fisheye8k-visdrone/fisheye8K_visdrone/train/images
+    ann_file: /kaggle/input/fisheye8k-visdrone/fisheye8K_visdrone/train/train.json
     return_masks: False
     transforms:
       type: Compose
@@ -28,8 +28,8 @@ val_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: /kaggle/input/fisheye8k-vipcupnight2k/fisheye8k_and_vip_cup_night_2k/val/images
-    ann_file: /kaggle/input/fisheye8k-vipcupnight2k/fisheye8k_and_vip_cup_night_2k/val/val.json
+    img_folder: /kaggle/input/fisheye8k-visdrone/fisheye8K_visdrone/val/images
+    ann_file: /kaggle/input/fisheye8k-visdrone/fisheye8K_visdrone/val/val.json
     return_masks: False
     transforms:
       type: Compose

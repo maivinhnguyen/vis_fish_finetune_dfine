@@ -32,8 +32,10 @@ train_dataloader:
   dataset: 
     transforms:
       policy:
-        epoch: [3, 25, 47]   # list 
-
+        epoch: [3, 3, 47]   # list 
+        ops: ['Mosaic', 'RandomAffine']
+        mosaic_prob: 0.0
   collate_fn:
-    mixup_epochs: [3, 47]
-    stop_epoch: 120
+    mixup_prob: 0.0
+    mixup_epochs: [4, 29]
+    stop_epoch: 50    # epoch in [72, ~) stop `multiscales`
