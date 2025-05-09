@@ -25,17 +25,15 @@ epoches: 50 # 120 + 4n
 
 ## Our LR-Scheduler
 flat_epoch: 30    # 4 + epoch // 2, e.g., 40 = 4 + 72 / 2
-no_aug_epoch: 3
+no_aug_epoch: 4
 
 ## Our DataAug
 train_dataloader: 
   dataset: 
     transforms:
       policy:
-        epoch: [3, 3, 47]   # list 
-        ops: ['Mosaic', 'RandomAffine']
-        mosaic_prob: 0.0
+        epoch: [1, 25, 47]   # list 
+
   collate_fn:
-    mixup_prob: 0.0
-    mixup_epochs: [4, 29]
-    stop_epoch: 50    # epoch in [72, ~) stop `multiscales`
+    mixup_epochs: [1, 47]
+    stop_epoch: 120

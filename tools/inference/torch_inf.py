@@ -18,6 +18,15 @@ import cv2
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from engine.core import YAMLConfig
 
+def get_image_Id(img_name):
+    img_name = img_name.split('.png')[0]
+    sceneList = ['M', 'A', 'E', 'N']
+    cameraIndx = int(img_name.split('_')[0].split('camera')[1])
+    sceneIndx = sceneList.index(img_name.split('_')[1])
+    frameIndx = int(img_name.split('_')[2])
+    imageId = int(str(cameraIndx) + str(sceneIndx) + str(frameIndx))
+    return imageId
+
 
 def process_directory_to_coco(model, device, input_dir, output_json, conf_threshold=0.4):
     """
@@ -41,8 +50,7 @@ def process_directory_to_coco(model, device, input_dir, output_json, conf_thresh
     
     # You can customize category definitions based on your model's classes
     # For now using placeholder indices
-    category_mapping = {
-    }  # Will be populated from detection results
+    category_mapping = {}  # Will be populated from detection results
     annotation_id = 1
     
     # Get all image files in the directory
@@ -61,8 +69,14 @@ def process_directory_to_coco(model, device, input_dir, output_json, conf_thresh
     # Start timer
     start_time = datetime.datetime.now()
     
-    for image_id, image_path in enumerate(image_files, 1):
+    for _, image_path in enumerate(image_files, 1):
         img_filename = os.path.basename(image_path)
+        
+        try:
+            image_id = get_image_Id(img_filename)
+        except Exception as e:
+            print(f"Skipping {img_filename}: could not parse image ID. Error: {e}")
+            continue
         
         # Load and process image
         im_pil = Image.open(image_path).convert('RGB')
@@ -74,6 +88,10 @@ def process_directory_to_coco(model, device, input_dir, output_json, conf_thresh
             "width": original_width,
             "height": original_height,
             "file_name": img_filename,
+            "license": 0,
+            "flickr_url": "",
+            "coco_url": "",
+            "date_captured": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
         
         # Prepare image for model
@@ -114,6 +132,7 @@ def process_directory_to_coco(model, device, input_dir, output_json, conf_thresh
                 "category_id": label_id,
                 "bbox": [float(x1), float(y1), float(width), float(height)],
                 "area": float(width * height),
+                "segmentation": [],
                 "iscrowd": 0,
                 "score": float(filtered_scores[i])
             })
