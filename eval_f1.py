@@ -2,13 +2,13 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 import json
 
-coco_gt = COCO('test.json')
+coco_gt = COCO('/kaggle/input/fisheye8k/Fisheye8K_all_including_train&test/test/test.json')
 
 gt_image_ids = coco_gt.getImgIds()
 
 print("Total images ", len(gt_image_ids))
 
-with open('detection.json', 'r') as f:
+with open('d/kaggle/working/vis_fish_finetune_dfine/detection.json', 'r') as f:
     detection_data = json.load(f)
 
 filtered_detection_data = [
