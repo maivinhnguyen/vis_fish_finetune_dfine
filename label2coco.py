@@ -8,9 +8,9 @@ import argparse
 
 def convert(dir_data):
 
-  train_data = dir_data + '/VisDrone2019-DET-train/'
-  val_data = dir_data + '/VisDrone2019-DET-val/'
-  test_data = dir_data + '/VisDrone2019-DET-test-dev/'
+  train_data = dir_data + '/VisDrone2019-DET-train/VisDrone2019-DET-train/'
+  val_data = dir_data + '/VisDrone2019-DET-val/VisDrone2019-DET-val/'
+  test_data = dir_data + '/VisDrone2019-DET-test-dev/VisDrone2019-DET-test-dev/'
   loops = [train_data, val_data, test_data]
   for l in loops:
       print('Solving ', l)
