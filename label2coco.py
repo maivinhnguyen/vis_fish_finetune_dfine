@@ -2,140 +2,108 @@ import glob
 import imagesize
 import os
 import json
-from PIL import Image
-from tqdm import tqdm
 import argparse
+from tqdm import tqdm
+
 
 def convert(dir_data):
+    train_data = os.path.join(dir_data, 'VisDrone2019-DET-train', 'VisDrone2019-DET-train')
+    val_data = os.path.join(dir_data, 'VisDrone2019-DET-val', 'VisDrone2019-DET-val')
+    test_data = os.path.join(dir_data, 'VisDrone2019-DET-test-dev', 'VisDrone2019-DET-test-dev')
+    subsets = {
+        'train': train_data,
+        'val': val_data,
+        'test': test_data,
+    }
 
-  train_data = dir_data + '/VisDrone2019-DET-train/VisDrone2019-DET-train/'
-  val_data = dir_data + '/VisDrone2019-DET-val/VisDrone2019-DET-val/'
-  test_data = dir_data + '/VisDrone2019-DET-test-dev/VisDrone2019-DET-test-dev/'
-  loops = [train_data, val_data, test_data]
-  for l in loops:
-      print('Solving ', l)
-      dict_coco = {}
+    # Define valid category IDs (VisDrone: 1-10) and remap to 0-based
+    VALID_IDS = list(range(1, 11))  # exclude 'others' (11)
 
-      dir_imgs = './images/'
+    for split, data_path in subsets.items():
+        print(f"Processing {split} at {data_path}")
+        coco = {
+            'images': [],
+            'annotations': [],
+            'categories': []
+        }
 
-      ''' Key: images '''
-      print('Solving images')
-      dict_image_and_id = {}
-      dict_coco['images'] = []
-      img_id = 0
-      for img in tqdm(glob.glob(l + dir_imgs + '*')):
-          # image = Image.open(img)
-          width, height = imagesize.get(img)
-          # file_name = os.path.split(img)
-          file_name_save = os.path.split(img)[-1]
-          dict_coco['images'].append({
-              "id" : img_id,
-              "license" : 1,
-              "height" : height,
-              "width" : width,
-              "file_name": file_name_save
-          })
-          dict_image_and_id[file_name_save] = img_id
-          img_id = img_id + 1
+        # build image index
+        img_folder = os.path.join(data_path, 'images')
+        image_id_map = {}
+        img_id = 0
+        print('  -> Reading images')
+        for img_path in tqdm(glob.glob(os.path.join(img_folder, '*.jpg'))):
+            width, height = imagesize.get(img_path)
+            fname = os.path.basename(img_path)
+            coco['images'].append({
+                'id': img_id,
+                'file_name': fname,
+                'width': width,
+                'height': height,
+                'license': 1
+            })
+            image_id_map[fname] = img_id
+            img_id += 1
 
-      ''' Key: annotations '''
-      print('Solving annotations')
-      dir_labels = '/annotations/'
-      dict_coco['annotations'] = []
-      anno_id = 0
-      for file_txt in tqdm(glob.glob(l + dir_labels + '*.txt')):
-          # with open(file_txt, 'r') as f:
-          #     annotations = f.read()
-          annotations = open(file_txt,'r').read()
-          annotations = annotations.split('\n')
-          for i in range(0, len(annotations)):
-              annotations[i] = annotations[i].split(',')
-          
-          annotations = annotations[:-1]
-          for detection in annotations:
-              category_id = int(detection[5])
-              bbox = [int(detection[0]), int(detection[1]), int(detection[2]), int(detection[3])]
-              area = int(detection[2]) * int(detection[3])
-              segmentation = []
-              iscrowd = 0
-              img_name = os.path.splitext(os.path.split(file_txt)[-1])[0] + '.jpg'
-              image_id = dict_image_and_id[img_name]
+        # build annotations
+        anno_folder = os.path.join(data_path, 'annotations')
+        anno_id = 0
+        print('  -> Reading annotations')
+        for txt_path in tqdm(glob.glob(os.path.join(anno_folder, '*.txt'))):
+            img_name = os.path.splitext(os.path.basename(txt_path))[0] + '.jpg'
+            if img_name not in image_id_map:
+                continue
+            image_id = image_id_map[img_name]
+            # read lines
+            with open(txt_path, 'r') as f:
+                lines = [line.strip() for line in f if line.strip()]
+            for line in lines:
+                parts = line.split(',')
+                orig_id = int(parts[5])
+                # skip invalid or 'others'
+                if orig_id not in VALID_IDS:
+                    continue
+                # remap to 0-based
+                cat_id = orig_id - 1
+                x, y, w, h = map(int, parts[:4])
+                area = w * h
+                coco['annotations'].append({
+                    'id': anno_id,
+                    'image_id': image_id,
+                    'category_id': cat_id,
+                    'bbox': [x, y, w, h],
+                    'area': area,
+                    'iscrowd': 0,
+                    'ignore': 0
+                })
+                anno_id += 1
 
-              dict_coco['annotations'].append({
-              "id": anno_id,
-                  "image_id": image_id,
-                  "category_id": category_id,
-                  "bbox": bbox,
-                  "area": area,
-                  "iscrowd": 0,
-                  "ignore": 0
-              })
+        # create categories array
+        names = [
+            'pedestrian', 'people', 'bicycle', 'car', 'van',
+            'truck', 'tricycle', 'awning-tricycle', 'bus', 'motor'
+        ]
+        for cid, name in enumerate(names):
+            coco['categories'].append({
+                'id': cid,
+                'name': name,
+                'supercategory': 'none'
+            })
 
-              anno_id = anno_id + 1
+        # save JSON
+        out_name = f'annotations_VisDrone_{split}.json'
+        out_path = os.path.join(dir_data, out_name)
+        print(f"  -> Saving COCO annotations to {out_path}")
+        with open(out_path, 'w') as f:
+            json.dump(coco, f)
 
-      ''' Key: categories '''
 
-      '''
-      pedestrian (1), people (2), bicycle (3), car (4), van (5), 
-      truck (6), tricycle (7), awning-tricycle (8), bus (9), motor (10), others (11)
-      '''
-      dict_coco['categories'] = [{
-          "id": 1,
-          "name": "pedestrian",
-          "supercategory": "none"},
-          {
-          "id": 2,
-          "name": "people",
-          "supercategory": "none"},
-          {
-          "id": 3,
-          "name": "bicycle",
-          "supercategory": "none"},
-          {
-          "id": 4,
-          "name": "car",
-          "supercategory": "none"},
-          {
-          "id": 5,
-          "name": "van",
-          "supercategory": "none"},
-          {
-          "id": 6,
-          "name": "truck",
-          "supercategory": "none"},
-          {
-          "id": 7,
-          "name": "tricycle",
-          "supercategory": "none"},
-          {
-          "id": 8,
-          "name": "awning-tricycle",
-          "supercategory": "none"},
-          {
-          "id": 9,
-          "name": "bus",
-          "supercategory": "none"},
-          {
-          "id": 10,
-          "name": "motor",
-          "supercategory": "none"},
-          {
-          "id": 11,
-          "name": "others",
-          "supercategory": "none"}
-          ]
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data_dir', type=str, default='./', help='Root data directory')
+    return parser.parse_args()
 
-      with open('annotations_VisDrone_' + l.split('-')[-1][:-1] + '.json', 'w') as f:
-          json.dump(dict_coco, f)
-
-def get_args():
-    parser = argparse.ArgumentParser('Train')
-    parser.add_argument('--data_dir', type=str, default='./',
-                        help='Data dir', dest='data_dir')
-    args = parser.parse_args()
-
-    return args
 
 if __name__ == '__main__':
-    args = get_args()
+    args = parse_args()
     convert(args.data_dir)
