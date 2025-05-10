@@ -1,19 +1,18 @@
 print_freq: 200
 output_dir: './logs'
-checkpoint_freq: 1
+checkpoint_freq: 5
 
 sync_bn: True
 find_unused_parameters: False
-
 
 use_amp: True
 scaler:
   type: GradScaler
   enabled: True
 
+use_ema: False  # Correct to keep disabled unless you’re confident in needing EMA for long training
 
-use_ema: False
 ema:
   type: ModelEMA
   decay: 0.9999
-  warmups: 1000
+  warmups: 100  # Reduced from 1000 → suits 25 epochs better (avoid wasting warmup)

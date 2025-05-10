@@ -3,7 +3,7 @@ __include__: [
   '../base/deim.yml'
 ]
 
-output_dir: ./outputs/deim_hgnetv2_m_coco
+output_dir: ./outputs/deim_hgnetv2_m_coco_25ep
 
 optimizer:
   params: 
@@ -18,21 +18,20 @@ optimizer:
   betas: [0.9, 0.999]
   weight_decay: 0.0001
 
+# Reduce training epochs
+epoches: 25
 
-# Increase to search for the optimal ema
-epoches: 50 # 120 + 4n
+# Adjust learning rate schedule
+flat_epoch: 16   # 4 + 25 // 2
+no_aug_epoch: 3  # reduced from 6
 
-## Our LR-Scheduler
-flat_epoch: 29    # 4 + epoch // 2, e.g., 40 = 4 + 72 / 2
-no_aug_epoch: 6
-
-## Our DataAug
+# Adjust data augmentation schedule
 train_dataloader: 
   dataset: 
     transforms:
       policy:
-        epoch: [2, 25, 45]   # list 
+        epoch: [2, 10, 20]   # adjusted to fit within 25 epochs
 
   collate_fn:
-    mixup_epochs: [2, 25]
-    stop_epoch: 0 ## DISABLED - PROBLEMATIC AF
+    mixup_epochs: [2, 10]
+    stop_epoch: 0  ## DISABLED

@@ -1,38 +1,40 @@
-
 train_dataloader:
   dataset:
     transforms:
       ops:
         - {type: RandomPhotometricDistort, p: 0.5}
-        - {type: RandomZoomOut, fill: 0}
-        - {type: RandomIoUCrop, p: 0.8}
-        - {type: SanitizeBoundingBoxes, min_size: 1}
-        - {type: RandomHorizontalFlip}
-        - {type: Resize, size: [640, 640], }
+        - {type: RandomZoomOut, fill: 0, side_range: [1, 1.5]}  # conservative zoom out
+        - {type: RandomIoUCrop, p: 0.5, min_ious: [0.4, 0.5, 0.6]}  # avoid tight cropping
+        - {type: RandomPerspective, distortion_scale: 0.2, p: 0.3}  # simulate fisheye effect
+        - {type: RandomRotation90, p: 0.2}  # 90-degree rotations can help generalize orientation
+        - {type: RandomHorizontalFlip, p: 0.5}
+        - {type: Resize, size: [640, 640]}
         - {type: SanitizeBoundingBoxes, min_size: 1}
         - {type: ConvertPILImage, dtype: 'float32', scale: True}
         - {type: ConvertBoxes, fmt: 'cxcywh', normalize: True}
+
       policy:
         name: stop_epoch
-        epoch: 72 # epoch in [71, ~) stop `ops`
-        ops: ['Mosaic', 'RandomPhotometricDistort', 'RandomZoomOut', 'RandomIoUCrop']
+        epoch: 22  # stop heavy augments early (out of 25 total)
+        ops: ['RandomPerspective', 'RandomIoUCrop', 'RandomZoomOut', 'RandomPhotometricDistort']
 
   collate_fn:
     type: BatchImageCollateFunction
     base_size: 640
     base_size_repeat: 3
-    stop_epoch: 72 # epoch in [72, ~) stop `multiscales`
+    stop_epoch: 23
 
   shuffle: True
-  total_batch_size: 8 # total batch size equals to 32 (4 * 8)
+  total_batch_size: 8
   num_workers: 4
+
 
 
 val_dataloader:
   dataset:
     transforms:
       ops:
-        - {type: Resize, size: [640, 640], }
+        - {type: Resize, size: [640, 640]}
         - {type: ConvertPILImage, dtype: 'float32', scale: True}
   shuffle: False
   total_batch_size: 32
