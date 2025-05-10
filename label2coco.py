@@ -92,7 +92,7 @@ def convert(dir_data):
 
         # save JSON
         out_name = f'annotations_VisDrone_{split}.json'
-        out_path = os.path.join(dir_data, out_name)
+        out_path = os.path.join('/kaggle/working', out_name)
         print(f"  -> Saving COCO annotations to {out_path}")
         with open(out_path, 'w') as f:
             json.dump(coco, f)
