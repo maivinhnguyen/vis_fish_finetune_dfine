@@ -1,0 +1,29 @@
+# Dataset configuration for Fisheye8k VIP Cup Night
+
+# Path to the root directory of your dataset.
+# All other paths (train, val, test) will be relative to this 'path' if they are not absolute.
+# Using an absolute path here is often safest to avoid ambiguity.
+# IMPORTANT: Use forward slashes (/) in paths for YAML, even on Windows, or double backslashes (\\).
+path: /kaggle/input/fisheye8k-visdrone-vipcupnight2k-grayscalyololabel/fisheye8K_visdrone_vipcupnight2k_grayscale  # Root directory of your dataset
+
+# Train/val/test sets as paths to directories containing image files
+# The corresponding label files (.txt) should be in a parallel 'labels' directory
+# e.g., if train images are in 'path/train/images', labels should be in 'path/train/labels'
+train: train/images  # Relative to 'path' -> E:/fisheye8k-vipcupnight-newlabeled/train/images
+val: val/images    # Relative to 'path' -> E:/fisheye8k-vipcupnight-newlabeled/val/images
+# test: test/images # Optional: path to test images (if you have a separate test set)
+
+# Number of classes
+nc: 5
+
+# Class names in the order of their IDs (0-4)
+# This MUST match the order of your class IDs used in the .txt label files
+names:
+  0: Bus
+  1: Bike
+  2: Car
+  3: Pedestrian
+  4: Truck
+
+# (Optional) Download command/URL for the dataset - not applicable here as it's local
+# download:
