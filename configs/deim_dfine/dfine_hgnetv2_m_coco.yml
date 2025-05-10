@@ -52,7 +52,7 @@ train_dataloader:
   dataset:
     transforms:
       policy:
-        epoch: [1, 8, 18]  # Adjusted for 25 epochs
+        epoch: [2, 10, 20]  # Adjusted for 25 epochs
   collate_fn:
     stop_epoch: 23  # Stop augmentations before final 2 epochs
     ema_restart_decay: 0.9998
