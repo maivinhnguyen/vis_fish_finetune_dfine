@@ -10,7 +10,7 @@ scaler:
   type: GradScaler
   enabled: True
 
-use_ema: False  # Correct to keep disabled unless you’re confident in needing EMA for long training
+use_ema: True  # Correct to keep disabled unless you’re confident in needing EMA for long training
 
 ema:
   type: ModelEMA
